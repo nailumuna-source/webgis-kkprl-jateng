@@ -1,27 +1,28 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <title>WebGIS KKPRL</title>
+<meta charset="UTF-8">
+<title>WebGIS KKPRL Jawa Tengah</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- Leaflet -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- Leaflet -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-  <!-- Leaflet Search -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet-search@3.0.4/dist/leaflet-search.min.css" />
-  <script src="https://unpkg.com/leaflet-search@3.0.4/dist/leaflet-search.min.js"></script>
+<!-- Leaflet Search -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet-search@3.0.4/dist/leaflet-search.min.css"/>
+<script src="https://unpkg.com/leaflet-search@3.0.4/dist/leaflet-search.min.js"></script>
 
-  <style>
-    html, body {
-      margin: 0;
-      height: 100%;
-    }
-    #map {
-      width: 100%;
-      height: 100%;
-    }
-  </style>
+<style>
+html, body {
+  margin: 0;
+  height: 100%;
+}
+#map {
+  width: 100%;
+  height: 100%;
+}
+</style>
 </head>
 
 <body>
@@ -29,29 +30,22 @@
 
 <script>
 /* =========================
-   BASEMAP
+   MAP & BASEMAP
 ========================= */
 const map = L.map('map').setView([-6.9, 110.4], 9);
 
-const esriSatellite = L.tileLayer(
+L.tileLayer(
   'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
   { attribution: '© Esri' }
 ).addTo(map);
 
 /* =========================
-   WARNA (ANTI BIRU & HIJAU)
+   WARNA PER NAMA SUBJEK
 ========================= */
 const colorPalette = [
-  '#e6194b', // merah
-  '#f58231', // oranye
-  '#911eb4', // ungu
-  '#f032e6', // pink
-  '#9a6324', // coklat
-  '#800000', // maroon
-  '#ffe119', // kuning
-  '#fabed4', // soft pink
-  '#ffd8b1', // peach
-  '#bfef45'  // lime kekuningan
+  '#e6194b', '#f58231', '#911eb4', '#f032e6',
+  '#9a6324', '#800000', '#ffe119', '#fabed4',
+  '#ffd8b1', '#bfef45'
 ];
 
 let subjectColors = {};
@@ -66,16 +60,14 @@ function getColorBySubject(subject) {
 }
 
 /* =========================
-   STYLE FEATURE
+   STYLE KKPRL
 ========================= */
-function styleFeature(feature) {
-  const subject = feature.properties.nama_subjek || 'Tidak Diketahui';
-
+function kkprlStyle(feature) {
+  const subject = feature.properties.NAMA_SUBJ || 'LAINNYA';
   return {
     fillColor: getColorBySubject(subject),
-    weight: 1,
-    opacity: 1,
     color: '#333',
+    weight: 1,
     fillOpacity: 0.7
   };
 }
@@ -83,58 +75,45 @@ function styleFeature(feature) {
 /* =========================
    POPUP
 ========================= */
-function onEachFeature(feature, layer) {
+function kkprlPopup(feature, layer) {
   const p = feature.properties;
-
   layer.bindPopup(`
-    <b>Nama Subjek:</b> ${p.nama_subjek || '-'}<br>
-    <b>Provinsi:</b> ${p.provinsi || '-'}<br>
-    <b>Keterangan:</b> ${p.keterangan || '-'}
+    <b>No KKPRL:</b> ${p.NO_KKPRL || '-'}<br>
+    <b>Nama Subjek:</b> ${p.NAMA_SUBJ || '-'}<br>
+    <b>Kegiatan:</b> ${p.KEGIATAN || '-'}<br>
+    <b>Provinsi:</b> ${p.PROVINSI || '-'}<br>
+    <b>Perairan:</b> ${p.PERAIRAN || '-'}<br>
+    <b>Luas (Ha):</b> ${p.LUAS_HA || '-'}
   `);
 }
 
 /* =========================
-   LOAD GEOJSON
+   LOAD KKPRL
 ========================= */
-const kkprlLayer = L.layerGroup().addTo(map);
-
-fetch('data/kkprl.geojson')
-  .then(response => response.json())
+fetch('data/kkprl_jawa.geojson')
+  .then(res => res.json())
   .then(data => {
 
-    const geojson = L.geoJSON(data, {
-      style: styleFeature,
-      onEachFeature: onEachFeature
-    }).addTo(kkprlLayer);
+    const kkprlLayer = L.geoJSON(data, {
+      style: kkprlStyle,
+      onEachFeature: kkprlPopup
+    }).addTo(map);
 
-    map.fitBounds(geojson.getBounds());
+    map.fitBounds(kkprlLayer.getBounds());
 
-    /* =========================
-       SEARCH
-    ========================= */
+    // Search by NAMA_SUBJ
     const searchControl = new L.Control.Search({
-      layer: geojson,
-      propertyName: 'nama_subjek',
+      layer: kkprlLayer,
+      propertyName: 'NAMA_SUBJ',
       marker: false,
-      moveToLocation: function(latlng, title, map) {
+      moveToLocation: function(latlng) {
         map.setView(latlng, 12);
       }
     });
-
     map.addControl(searchControl);
-  });
-
-/* =========================
-   LAYER CONTROL
-========================= */
-const overlayMaps = {
-  "KKPRL": kkprlLayer
-};
-
-L.control.layers(null, overlayMaps, {
-  collapsed: false
-}).addTo(map);
-
+  })
+  .catch(err => console.error('Error KKPRL:', err));
 </script>
+
 </body>
 </html>
