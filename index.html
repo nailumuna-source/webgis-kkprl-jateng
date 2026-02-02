@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>WebGIS KKPRL Jawa Tengah</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Leaflet CSS -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  />
+
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+    }
+    #map {
+      width: 100%;
+      height: 100vh;
+    }
+    .popup-table {
+      border-collapse: collapse;
+      width: 100%;
+      font-size: 12px;
+    }
+    .popup-table td {
+      border: 1px solid #ccc;
+      padding: 4px;
+      vertical-align: top;
+    }
+    .popup-table td:first-child {
+      font-weight: bold;
+      background: #f5f5f5;
+      width: 35%;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="map"></div>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <script>
+    // Inisialisasi peta
+    var map = L.map("map").setView([-7.2, 110.0], 8);
+
+    // Basemap OpenStreetMap
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: "&copy; OpenStreetMap contributors"
+    }).addTo(map);
+
+    // Style layer KKPRL
+    function kkprlStyle() {
+      return {
+        color: "#0055ff",
+        weight: 2,
+        fillColor: "#4da6ff",
+        fillOpacity: 0.5
+      };
+    }
+
+    // Popup atribut
+    function onEachFeature(feature, layer) {
+      var p = feature.properties;
+
+      var popupContent = `
+        <table class="popup-table">
+          <tr><td>No KKPRL</td><td>${p.NO_KKPRL || "-"}</td></tr>
+          <tr><td>Nama Subjek</td><td>${p.NAMA_SUBJ || "-"}</td></tr>
+          <tr><td>Kegiatan</td><td>${p.KEGIATAN || "-"}</td></tr>
+          <tr><td>Luas (Ha)</td><td>${p.LUAS_HA || "-"}</td></tr>
+          <tr><td>Perairan</td><td>${p.PERAIRAN || "-"}</td></tr>
+          <tr><td>Provinsi</td><td>${p.PROVINSI || "-"}</td></tr>
+          <tr><td>Tanggal Terbit</td><td>${p.TERBIT || "-"}</td></tr>
+          <tr><td>Berlaku</td><td>${p.BERLAKU || "-"}</td></tr>
+          <tr><td>Penerbit</td><td>${p.PENERBIT || "-"}</td></tr>
+        </table>
+      `;
+
+      layer.bindPopup(popupContent);
+    }
+
+    // Load GeoJSON KKPRL
+    fetch("data/kkprl_jawa.geojson")
+      .then(response => response.json())
+      .then(data => {
+        var kkprlLayer = L.geoJSON(data, {
+          style: kkprlStyle,
+          onEachFeature: onEachFeature
+        }).addTo(map);
+
+        map.fitBounds(kkprlLayer.getBounds());
+      })
+      .catch(error => {
+        console.error("Gagal load GeoJSON:", error);
+        alert("Data KKPRL tidak bisa dimuat. Cek nama file GeoJSON.");
+      });
+  </script>
+</body>
+</html>
